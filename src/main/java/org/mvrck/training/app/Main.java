@@ -1,7 +1,6 @@
 package org.mvrck.training.app;
 
 import akka.actor.typed.*;
-import org.mvrck.training.http.*;
 
 public class Main {
   public static void main(String[] args) throws Exception {
