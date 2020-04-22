@@ -1,6 +1,7 @@
 package org.mvrck.training.actor;
 
 import akka.actor.typed.*;
+import akka.cluster.sharding.typed.javadsl.*;
 import akka.persistence.typed.*;
 import akka.persistence.typed.javadsl.*;
 import org.mvrck.training.actor.TicketStockActor.*;
@@ -8,6 +9,9 @@ import org.mvrck.training.actor.TicketStockActor.*;
 import java.util.*;
 
 public class TicketStockActor extends EventSourcedBehavior<Command, Event, State> {
+
+  public static final EntityTypeKey<Command> ENTITY_TYPE_KEY =
+    EntityTypeKey.create(Command.class, "TicketStock");
 
   /********************************************************************************
    *  Actor factory
