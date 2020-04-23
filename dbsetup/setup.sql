@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS traininig_akka_java_5_cqrs;
-USE traininig_akka_java_5_cqrs;
+CREATE DATABASE IF NOT EXISTS traininig_akka_java_5_clustering;
+USE traininig_akka_java_5_clustering;
 
 CREATE TABLE IF NOT EXISTS journal (
   ordering SERIAL,
@@ -32,7 +32,7 @@ CREATE TABLE orders (
   `user_id` INT NOT NULL,
   `quantity` INT NOT NULL,
   PRIMARY KEY(`id`),
-  FOREIGN KEY(`ticket_id`) REFERENCES ticket_stocks(`ticket_id`),
+  FOREIGN KEY(`ticket_id`) REFERENCES ticket_stocks(`ticket_id`)
   -- 本来ならticketsテーブルがあるはずで、以下のようになる
   -- FOREIGN KEY(`ticket_id`) REFERENCES tickets(`id`)
   -- また、usersテーブルもあるはず
