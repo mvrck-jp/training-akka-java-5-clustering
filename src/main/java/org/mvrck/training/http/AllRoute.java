@@ -1,19 +1,17 @@
 package org.mvrck.training.http;
 
 import akka.actor.typed.*;
+import akka.cluster.sharding.typed.javadsl.*;
 import akka.http.javadsl.server.*;
-import org.mvrck.training.actor.*;
 
 public class AllRoute extends AllDirectives {
-  ActorSystem<Void> system;
   OrderRoute orderRoute;
 
   public AllRoute(
     ActorSystem<Void> system,
-    ActorRef<TicketStockParentActor.Command> ticketStockParent
+    ClusterSharding sharding
   ){
-    this.system = system;
-    this.orderRoute = new OrderRoute(system, ticketStockParent);
+    this.orderRoute = new OrderRoute(system, sharding);
   }
 
   public Route route(){
