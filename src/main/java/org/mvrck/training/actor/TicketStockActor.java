@@ -18,12 +18,13 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
    *  Actor factory
    *******************************************************************************/
   // public: the only Behavior factory method accessed from outside the actor
-  public static Behavior<Command> create(String ticketId){
-    return new TicketStockActor(PersistenceId.of("TicketStockActor", ticketId));
+  public static Behavior<Command> create(ClusterSharding sharding, String ticketId){
+    return new TicketStockActor(sharding, PersistenceId.of("TicketStockActor", ticketId));
   }
 
-  private TicketStockActor(PersistenceId persistenceId){
+  private TicketStockActor(ClusterSharding sharding, PersistenceId persistenceId){
     super(persistenceId);
+    this.sharding = sharding;
   }
 
   @Override

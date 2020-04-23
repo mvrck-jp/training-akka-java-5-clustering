@@ -2,7 +2,6 @@ package org.mvrck.training.app;
 
 import akka.actor.typed.*;
 import akka.actor.typed.javadsl.*;
-import akka.cluster.sharding.typed.*;
 import akka.cluster.sharding.typed.javadsl.*;
 import akka.http.javadsl.*;
 import akka.stream.*;
@@ -19,14 +18,16 @@ public class Main {
     var sharding = ClusterSharding.get(system);
     var materializer = Materializer.createMaterializer(system);
 
-    var shardRegionOrder = sharding.init(Entity.of(OrderActor.ENTITY_TYPE_KEY, ctx -> OrderActor.create(ctx.getEntityId())));
-    var shardRegionTicketStock = sharding.init(Entity.of(TicketStockActor.ENTITY_TYPE_KEY, ctx -> TicketStockActor.create(ctx.getEntityId())));
+    sharding.init(Entity.of(OrderActor.ENTITY_TYPE_KEY, ctx -> OrderActor.create(ctx.getEntityId())));
+    sharding.init(Entity.of(TicketStockActor.ENTITY_TYPE_KEY, ctx -> TicketStockActor.create(sharding, ctx.getEntityId())));
 
     /********************************************************************************
      *  Initialize TicketStock actors
      *******************************************************************************/
-    shardRegionTicketStock.tell(new ShardingEnvelope<>("1", new TicketStockActor.CreateTicketStock(1, 5000)));
-    shardRegionTicketStock.tell(new ShardingEnvelope<>("2", new TicketStockActor.CreateTicketStock(2, 2000)));
+    var ref1 = sharding.entityRefFor(TicketStockActor.ENTITY_TYPE_KEY,"1");
+    ref1.tell(new TicketStockActor.CreateTicketStock(1, 5000));
+    var ref2 = sharding.entityRefFor(TicketStockActor.ENTITY_TYPE_KEY,"2");
+    ref2.tell(new TicketStockActor.CreateTicketStock(2, 2000));
 
     /********************************************************************************
      *  Http setup
