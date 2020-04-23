@@ -9,6 +9,7 @@ import org.mvrck.training.actor.TicketStockActor.*;
 import java.util.*;
 
 public class TicketStockActor extends EventSourcedBehavior<Command, Event, State> {
+  ClusterSharding sharding;
 
   public static final EntityTypeKey<Command> ENTITY_TYPE_KEY =
     EntityTypeKey.create(Command.class, "TicketStock");
@@ -17,8 +18,8 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
    *  Actor factory
    *******************************************************************************/
   // public: the only Behavior factory method accessed from outside the actor
-  public static Behavior<Command> create(int ticketId){
-    return new TicketStockActor(PersistenceId.of("TicketStockActor", Integer.toString(ticketId)));
+  public static Behavior<Command> create(String ticketId){
+    return new TicketStockActor(PersistenceId.of("TicketStockActor", ticketId));
   }
 
   private TicketStockActor(PersistenceId persistenceId){
@@ -39,7 +40,7 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
 
     builder
       .forStateType(Initialized.class)
-      .onCommand(CreateTicketStock.class, command -> Effect().persist(new TicketStockCreated(command.ticketId, command.quantity, command.orderParent)));
+      .onCommand(CreateTicketStock.class, command -> Effect().persist(new TicketStockCreated(command.ticketId, command.quantity)));
 
     builder
       .forStateType(Available.class)
@@ -52,11 +53,17 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
           if (newQuantity > 0) {
             return Effect()
               .persist(new OrderProcessed(command.ticketId, newQuantity, command.quantityDecrementedBy))
-              .thenRun(() -> state.orderParent.tell(new OrderParentActor.CreateOrder(command.ticketId, command.userId, command.quantityDecrementedBy, command.sender)));
+              .thenRun(() -> {
+                var orderActor = sharding.entityRefFor(OrderActor.ENTITY_TYPE_KEY, command.orderId);
+                orderActor.tell(new OrderActor.CreateOrder(command.ticketId, command.userId, command.quantityDecrementedBy, command.sender));
+              });
           } else if (newQuantity == 0) {
             return Effect()
               .persist(new SoldOut(command.ticketId, command.quantityDecrementedBy))
-              .thenRun(() -> state.orderParent.tell(new OrderParentActor.CreateOrder(command.ticketId, command.userId, command.quantityDecrementedBy, command.sender)));
+              .thenRun(() -> {
+                var orderActor = sharding.entityRefFor(OrderActor.ENTITY_TYPE_KEY, command.orderId);
+                orderActor.tell(new OrderActor.CreateOrder(command.ticketId, command.userId, command.quantityDecrementedBy, command.sender));
+              });
           } else { //newQuantity < 0
             return Effect()
               .none()
@@ -78,11 +85,11 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
 
     builder
       .forStateType(Initialized.class)
-      .onEvent(TicketStockCreated.class, (state, event) -> new Available(event.ticketId, event.quantity, event.orderParent));
+      .onEvent(TicketStockCreated.class, (state, event) -> new Available(event.ticketId, event.quantity));
 
     builder
       .forStateType(Available.class)
-      .onEvent(OrderProcessed.class, (state, event) -> new Available(state.ticketId, event.newQuantity, state.orderParent))
+      .onEvent(OrderProcessed.class, (state, event) -> new Available(state.ticketId, event.newQuantity))
       .onEvent(SoldOut.class, (state, event) -> new OutOfStock(state.ticketId));
 
     return builder.build();
@@ -100,21 +107,21 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
   public static final class CreateTicketStock implements Command {
     public int ticketId;
     public int quantity;
-    public ActorRef<OrderParentActor.Command> orderParent;
 
-    public CreateTicketStock(int ticketId, int quantity, ActorRef<OrderParentActor.Command> orderParent) {
+    public CreateTicketStock(int ticketId, int quantity) {
       this.ticketId = ticketId;
       this.quantity = quantity;
-      this.orderParent = orderParent;
     }
   }
   public static final class ProcessOrder implements Command {
+    public String orderId;
     public int ticketId;
     public int userId;
     public int quantityDecrementedBy;
     public ActorRef<OrderActor.Response> sender;
 
-    public ProcessOrder(int ticketId, int userId, int quantityDecrementedBy, ActorRef<OrderActor.Response> sender) {
+    public ProcessOrder(String orderId, int ticketId, int userId, int quantityDecrementedBy, ActorRef<OrderActor.Response> sender) {
+      this.orderId = orderId;
       this.ticketId = ticketId;
       this.userId = userId;
       this.quantityDecrementedBy = quantityDecrementedBy;
@@ -131,14 +138,9 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
     public int ticketId;
     public int quantity;
 
-    // https://doc.akka.io/docs/akka/current/serialization.html#serializing-actorrefs
-    // All ActorRefs are serializable when using Serialization with Jackson, but in case you are writing your own serializer, you might want to know how to serialize and deserialize them properly.
-    public ActorRef<OrderParentActor.Command> orderParent;
-
-    public TicketStockCreated(int ticketId, int quantity, ActorRef<OrderParentActor.Command> orderParent) {
+    public TicketStockCreated(int ticketId, int quantity) {
       this.ticketId = ticketId;
       this.quantity = quantity;
-      this.orderParent = orderParent;
     }
   }
 
@@ -173,12 +175,10 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
   private final class Available implements State {
     public int ticketId;
     public int quantity;
-    public ActorRef<OrderParentActor.Command> orderParent;
 
-    public Available(int ticketId, int quantity, ActorRef<OrderParentActor.Command> orderParent) {
+    public Available(int ticketId, int quantity) {
       this.ticketId = ticketId;
       this.quantity = quantity;
-      this.orderParent = orderParent;
     }
   }
 
