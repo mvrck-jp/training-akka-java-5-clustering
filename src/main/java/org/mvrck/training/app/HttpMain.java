@@ -5,29 +5,24 @@ import akka.actor.typed.javadsl.*;
 import akka.cluster.sharding.typed.javadsl.*;
 import akka.http.javadsl.*;
 import akka.stream.*;
+import com.typesafe.config.*;
 import org.mvrck.training.actor.*;
 import org.mvrck.training.http.*;
 
-public class Main {
+public class HttpMain {
   public static void main(String[] args) throws Exception {
 
     /********************************************************************************
      *  Initialize System, Cluster, and ShardRegion
      *******************************************************************************/
-    var system = ActorSystem.create(Behaviors.<Void>empty(), "MeverickTraining");
+    var config = ConfigFactory.load("http-main.conf");
+    var system = ActorSystem.create(Behaviors.<Void>empty(), "MeverickTraining", config);
     var sharding = ClusterSharding.get(system);
     var materializer = Materializer.createMaterializer(system);
 
+    // ShardRegions start
     sharding.init(Entity.of(OrderActor.ENTITY_TYPE_KEY, ctx -> OrderActor.create(ctx.getEntityId())));
     sharding.init(Entity.of(TicketStockActor.ENTITY_TYPE_KEY, ctx -> TicketStockActor.create(sharding, ctx.getEntityId())));
-
-    /********************************************************************************
-     *  Initialize TicketStock actors
-     *******************************************************************************/
-    var ref1 = sharding.entityRefFor(TicketStockActor.ENTITY_TYPE_KEY,"1");
-    ref1.tell(new TicketStockActor.CreateTicketStock(1, 5000));
-    var ref2 = sharding.entityRefFor(TicketStockActor.ENTITY_TYPE_KEY,"2");
-    ref2.tell(new TicketStockActor.CreateTicketStock(2, 2000));
 
     /********************************************************************************
      *  Http setup

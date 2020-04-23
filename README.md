@@ -48,6 +48,11 @@ MacBook前提。
 - def main() の中から注文とチケット在庫、2つのRead Journalをスタートしてprintlnください
 - printlnの代わりにMySQLのテーブルに書き込んでください
 
+
+http-mainの中身を確かめてください - clustersharding, shardregion
+entitykeyを確かめてください
+backend-main
+
 ### 発展的内容:
 
 - トレーニング1で考えたよう多数のテーブルを作成した場合、シーケンス図を書いてアクターからコマンド側の永続化層、クエリ側の永続仮想へと続く処理を整理してください

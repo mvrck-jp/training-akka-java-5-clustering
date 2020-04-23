@@ -3,6 +3,7 @@ package org.mvrck.training.app;
 import akka.actor.typed.*;
 import akka.actor.typed.javadsl.*;
 import akka.cluster.sharding.typed.javadsl.*;
+import com.typesafe.config.*;
 import org.mvrck.training.actor.*;
 
 public class BackendMain {
@@ -10,9 +11,11 @@ public class BackendMain {
     /********************************************************************************
      *  Initialize System, Cluster, and ShardRegion
      *******************************************************************************/
-    var system = ActorSystem.create(Behaviors.<Void>empty(), "MeverickTraining");
+    var config = ConfigFactory.load("backend-main.conf");
+    var system = ActorSystem.create(Behaviors.<Void>empty(), "MeverickTraining", config);
     var sharding = ClusterSharding.get(system);
 
+    // ShardRegions start
     sharding.init(Entity.of(OrderActor.ENTITY_TYPE_KEY, ctx -> OrderActor.create(ctx.getEntityId())));
     sharding.init(Entity.of(TicketStockActor.ENTITY_TYPE_KEY, ctx -> TicketStockActor.create(sharding, ctx.getEntityId())));
 
