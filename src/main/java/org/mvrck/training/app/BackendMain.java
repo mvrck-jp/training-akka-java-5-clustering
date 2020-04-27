@@ -16,8 +16,8 @@ public class BackendMain {
     var sharding = ClusterSharding.get(system);
 
     // ShardRegions start
-    sharding.init(Entity.of(OrderActor.ENTITY_TYPE_KEY, ctx -> OrderActor.create(ctx.getEntityId())));
-    sharding.init(Entity.of(TicketStockActor.ENTITY_TYPE_KEY, ctx -> TicketStockActor.create(sharding, ctx.getEntityId())));
+    sharding.init(Entity.of(OrderActor.ENTITY_TYPE_KEY, ctx -> OrderActor.create(ctx.getEntityId())).withRole("backend"));
+    sharding.init(Entity.of(TicketStockActor.ENTITY_TYPE_KEY, ctx -> TicketStockActor.create(sharding, ctx.getEntityId())).withRole("backend"));
 
     /********************************************************************************
      *  Initialize TicketStock actors
