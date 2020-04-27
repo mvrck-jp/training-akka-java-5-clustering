@@ -23,6 +23,7 @@ public class OrderActor extends EventSourcedBehavior<Command, Event, State> {
 
   private OrderActor(PersistenceId persistenceId){
     super(persistenceId);
+    System.out.println("OrderActor created for " + persistenceId);
   }
 
   @Override

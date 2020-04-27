@@ -25,6 +25,7 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
   private TicketStockActor(ClusterSharding sharding, PersistenceId persistenceId){
     super(persistenceId);
     this.sharding = sharding;
+    System.out.println("TicketStockActor created for " + persistenceId);
   }
 
   @Override
