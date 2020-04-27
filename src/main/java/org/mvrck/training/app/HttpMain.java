@@ -16,7 +16,7 @@ public class HttpMain {
      *  Initialize System, Cluster, and ShardRegion
      *******************************************************************************/
     var config = ConfigFactory.load("http-main.conf");
-    var system = ActorSystem.create(Behaviors.<Void>empty(), "MeverickTraining", config);
+    var system = ActorSystem.create(Behaviors.<Void>empty(), "MaverickTraining", config);
     var sharding = ClusterSharding.get(system);
     var materializer = Materializer.createMaterializer(system);
 

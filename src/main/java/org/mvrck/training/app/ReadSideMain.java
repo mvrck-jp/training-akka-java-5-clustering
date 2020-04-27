@@ -4,6 +4,7 @@ import akka.actor.typed.*;
 import akka.actor.typed.javadsl.*;
 import akka.persistence.jdbc.query.javadsl.*;
 import akka.persistence.query.*;
+import com.typesafe.config.*;
 import org.mvrck.training.actor.*;
 import org.mvrck.training.config.*;
 import org.mvrck.training.dao.OrderDaoImpl;
@@ -12,7 +13,8 @@ import org.mvrck.training.entity.*;
 
 public class ReadSideMain {
   public static void main(String[] array) {
-    var system = ActorSystem.create(Behaviors.empty(), "readside-guardian");
+    var config = ConfigFactory.load("readside-main.conf");
+    var system = ActorSystem.create(Behaviors.empty(), "MaverickTraining", config);
     var journal = PersistenceQuery.get(system).getReadJournalFor(JdbcReadJournal.class, JdbcReadJournal.Identifier());
 
     var transactionManager = AppConfig.singleton().getTransactionManager();
@@ -25,8 +27,8 @@ public class ReadSideMain {
         envelope -> {
           if(envelope.event() instanceof TicketStockActor.TicketStockCreated) {
             var event = (TicketStockActor.TicketStockCreated) envelope.event();
-            System.out.println("TicketStockCreated: tickedId = " + event.ticketId + ": SeqNo = " + envelope.sequenceNr() + ": ");
             var entity = new TicketStock();
+            System.out.println("TicketStockCreated: " + event.ticketId + ", " + event.quantity);
             entity.setTickeId(event.ticketId);
             entity.setQuantity(event.quantity);
             transactionManager.required(() -> {
@@ -35,11 +37,10 @@ public class ReadSideMain {
 
           } else if (envelope.event() instanceof TicketStockActor.OrderProcessed) {
             var event = (TicketStockActor.OrderProcessed) envelope.event();
-            System.out.println("OrderProcessed: tickedId = " + event.ticketId + ": SeqNo = " + envelope.sequenceNr() + ": ");
+            System.out.println("OrderProcessed:     " + event.ticketId + ", " + event.newQuantity);
             var entity = new TicketStock();
             entity.setTickeId(event.ticketId);
             entity.setQuantity(event.newQuantity);
-            System.out.println("event new quantity = " + event.newQuantity);
             transactionManager.required(() -> {
               ticketStockDao.update(entity);
             });
@@ -57,7 +58,9 @@ public class ReadSideMain {
         envelope -> {
           if(envelope.event() instanceof OrderActor.OrderCreated) {
             var event = (OrderActor.OrderCreated) envelope.event();
+            System.out.println("OrderCreated:       " + event.id + ", " + event.ticketId + ", " + event.userId + ", " + event.quantity);
             var entity = new Order();
+            entity.setId(event.id);
             entity.setTicketId(event.ticketId);
             entity.setUserId(event.userId);
             entity.setQuantity(event.quantity);
