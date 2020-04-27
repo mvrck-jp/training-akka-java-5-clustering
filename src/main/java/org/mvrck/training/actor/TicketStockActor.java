@@ -56,14 +56,14 @@ public class TicketStockActor extends EventSourcedBehavior<Command, Event, State
               .persist(new OrderProcessed(command.ticketId, newQuantity, command.quantityDecrementedBy))
               .thenRun(() -> {
                 var orderActor = sharding.entityRefFor(OrderActor.ENTITY_TYPE_KEY, command.orderId);
-                orderActor.tell(new OrderActor.CreateOrder(command.ticketId, command.userId, command.quantityDecrementedBy, command.sender));
+                orderActor.tell(new OrderActor.CreateOrder(command.orderId, command.ticketId, command.userId, command.quantityDecrementedBy, command.sender));
               });
           } else if (newQuantity == 0) {
             return Effect()
               .persist(new SoldOut(command.ticketId, command.quantityDecrementedBy))
               .thenRun(() -> {
                 var orderActor = sharding.entityRefFor(OrderActor.ENTITY_TYPE_KEY, command.orderId);
-                orderActor.tell(new OrderActor.CreateOrder(command.ticketId, command.userId, command.quantityDecrementedBy, command.sender));
+                orderActor.tell(new OrderActor.CreateOrder(command.orderId, command.ticketId, command.userId, command.quantityDecrementedBy, command.sender));
               });
           } else { //newQuantity < 0
             return Effect()
