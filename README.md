@@ -3,16 +3,22 @@ JavaによるAkkaトレーニング第5回
 ## Akkaクラスタリング
 
 いよいよAkkaクラスタリング機能の紹介です。
-アクター、イベントソーシングによるCQRS、そしてクラスタリングを用いることでAkkaの力を最大限活かすことが出来る、というのが私の考えです。
-ありとあらゆるシステムでこれら全ての
+アクター、イベントソーシングとCQRS、そしてクラスタリングを用いることでAkkaの力を最大限活かすことが出来る、というのが私の考えです。
+ありとあらゆるシステムでこれら全ての機能を使う必要はありませんが、やはりAkkaの醍醐味を味わうことが出来るのはアクターをクラスタ上で水平スケールさせて、
+イベント・ソーシングとCQRSで対障害性と疎結合を実現する場合です。
 
 このトレーニングではCQRS - Command Query Responsibility Separationと呼ばれる設計パターンの中を使ってイベント・ソーシングでは重視しなかったデータ読み込み側の処理を補完します。
 
-以下に課題を用意したので、それをこなすことがこのトレーニングのゴールです。
-課題の提出方法は後ほど紹介しますが、課題を通じて手を動かすとともに、トレーナーと対話することで学びを促進することが狙いです。
+- [第1回のトレーニング: リレーショナル・データベースのトランザクションによる排他制御](https://github.com/mvrck-inc/training-akka-java-1-preparation)
+- [第2回のトレーニング: アクターによる非同期処理](https://github.com/mvrck-inc/training-akka-java-2-actor)
+- [第3回のトレーニング: アクターとデータベースのシステム(イベント・ソーシング)](https://github.com/mvrck-inc/training-akka-java-3-persistence)
+- [第4回のトレーニング: アクターとデータベースのシステム(CQRS)](https://github.com/mvrck-inc/training-akka-java-4-cqrs)
+- [第5回のトレーニング: クラスタリング](https://github.com/mvrck-inc/training-akka-java-5-clustering)
 
-- [課題提出トレーニングのポリシー](./POLICIES.md)
-- [次回のトレーニング: Akkaアクターを用いた非同期処理](https://github.com/mvrck-inc/training-akka-java-3-event-sourcing)
+## 課題
+
+この課題をこなすことがトレーニングのゴールです。
+独力でも手を動かしながら進められるようようになっていますが、可能ならトレーナーと対話しながらすすめることでより効果的に学べます。
 
 ## この課題で身につく能力
 
@@ -23,9 +29,15 @@ JavaによるAkkaトレーニング第5回
 
 ## 課題
 
-MacBook前提。
+この課題をこなすことがトレーニングのゴールです。
+独力でも手を動かしながら進められるようようになっていますが、可能ならトレーナーと対話しながらすすめることでより効果的に学べます。
 
-## 課題
+## この課題で身につく能力
+
+- Akka HTTPと、別プロセスになっているアクターを用いたバックエンドとのAkkaクラスタリングによる接続
+- CQRSとの統合
+- Akka HTTPとAkkaバックエンドそれぞれを複数プロセス立ち上げスケールさせる
+- Akkaクラスタリングアプリケーション全体のパフォーマンスを測定する
 
 ### 事前準備:
 
@@ -41,17 +53,30 @@ MacBook前提。
 
 - このレポジトリをgit cloneしてください
   - `git clone git@github.com:mvrck-inc/training-akka-java-4-cqrs.git`
-- akka-persistence-queryをセットアップしてください
-- データベースのセットアップをしてください
-  - `CREATE TABLE`を走らせてください(リンク)
-- もうひとつのdef main()を作成してください
-- def main() の中から注文とチケット在庫、2つのRead Journalをスタートしてprintlnください
-- printlnの代わりにMySQLのテーブルに書き込んでください
-
-
-http-mainの中身を確かめてください - clustersharding, shardregion
-entitykeyを確かめてください
-backend-main
+- データベースのセットアップをしてください ([setup.sql](./dbsetup/setup.sql)) 
+  - 参考: akka-persistence-jdbcプラグインのデフォルト・テーブル構成([リンク](https://github.com/akka/akka-persistence-jdbc/blob/v3.5.3/src/test/resources/schema/mysql/mysql-schema.sql))
+- backendプロセスを起動してください `mvn exec:java -Dexec.mainClass=org.mvrck.training.app.BackendMain`
+- akka-httpプロセスを起動してください `mvn exec:java -Dexec.mainClass=org.mvrck.training.app.HttpMain`
+- read-sideプロセスを起動してください `mvn exec:java -Dexec.mainClass=org.mvrck.training.app.ReadSideMain`
+- curlでデータを挿入してください
+  - `curl -X POST -H "Content-Type: application/json" -d "{\"ticket_id\": 1, \"user_id\": 2, \"quantity\": 1}"  http://localhost:8080/orders`
+  - クライアント側ログからレスポンスを確認してください
+  - サーバー側ログを確認してください
+  - データベースでjournalテーブル、ticket_stocksテーブルとordersテーブルを確認してください ([select.sql](./dbsetup/select.sql))
+- wrkでベンチマークを走らせてください
+  - `wrk -t2 -c4 -d5s -s wrk-scripts/order.lua http://localhost:8080/orders`
+    - `-t2`: 2 threads
+    - `-c4`: 4 http connections
+    - `-d5`: 5 seconds of test duration
+    - `wrk-scripts/order.lua` ([リンク](./wrk-scrips/order.lua))
+    - クライアント側の実行結果を確認してください
+    - データベースでjournalテーブル、ticket_stocksテーブルとordersテーブルを確認してください ([select.sql](./dbsetup/select.sql)) 
+- akka-clusteringのセットアップを確認してください
+  - [pom.xml](./pom.xml#L31L35)
+  - [application.conf](./src/main/resources/application.conf)
+  - [http-main.conf](./src/main/resources/application.conf)
+  - [backend-main.conf](./src/main/resources/application.conf)
+  - [readside-main.conf](./src/main/resources/application.conf)
 
 ### 発展的内容:
 
@@ -60,8 +85,7 @@ backend-main
 ## 説明
 
 - [課題背景](./BACKGROUND.md)
-- [課題提出方法](./SUBMIT.md)
-- [課題手順の詳細](./DETAILES.md)
+- [課題手順の詳細](./INSTRUCTION.md)
 
 ## 参考文献・資料
 
